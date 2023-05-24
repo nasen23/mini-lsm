@@ -19,7 +19,9 @@ pub struct Block {
 
 impl Block {
     pub fn encode(&self) -> Bytes {
-        let mut buf = Vec::<u8>::with_capacity(self.data.len() + self.offsets.len() * SIZE_OF_U16);
+        let mut buf = Vec::<u8>::with_capacity(
+            self.data.len() + self.offsets.len() * SIZE_OF_U16 + SIZE_OF_U16,
+        );
         buf.put(self.data.as_slice());
         for &offset in self.offsets.iter() {
             buf.put_u16(offset);
