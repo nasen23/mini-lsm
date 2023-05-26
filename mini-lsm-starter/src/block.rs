@@ -1,13 +1,10 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 mod builder;
 mod iterator;
 
 const SIZE_OF_U16: usize = std::mem::size_of::<u16>();
 
 pub use builder::BlockBuilder;
-use bytes::{BufMut, Bytes};
+use bytes::{Buf, BufMut, Bytes};
 pub use iterator::BlockIterator;
 
 /// A block is the smallest unit of read and caching in LSM tree. It is a collection of sorted
@@ -31,7 +28,18 @@ impl Block {
     }
 
     pub fn decode(data: &[u8]) -> Self {
-        unimplemented!()
+        // read last 2 bytes
+        let num_elements = (&data[data.len() - SIZE_OF_U16..]).get_u16() as usize;
+        // read offsets reverse order
+        let offsets_raw =
+            &data[data.len() - SIZE_OF_U16 - num_elements * SIZE_OF_U16..data.len() - SIZE_OF_U16];
+        Self {
+            data: data[..data.len() - SIZE_OF_U16 - num_elements * SIZE_OF_U16].to_vec(),
+            offsets: offsets_raw
+                .chunks_exact(SIZE_OF_U16)
+                .map(|mut x| x.get_u16())
+                .collect(),
+        }
     }
 }
 
