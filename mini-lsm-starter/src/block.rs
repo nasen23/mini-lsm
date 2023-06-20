@@ -1,4 +1,5 @@
 mod builder;
+mod compression;
 mod iterator;
 
 const SIZE_OF_U16: usize = std::mem::size_of::<u16>();
