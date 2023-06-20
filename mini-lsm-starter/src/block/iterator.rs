@@ -57,26 +57,36 @@ impl BlockIterator {
     /// Seeks to the first key in the block.
     pub fn seek_to_first(&mut self) {
         self.idx = 0;
-        self.read_key_value();
+        self.read_kv();
     }
 
     /// Move to the next key in the block.
     pub fn next(&mut self) {
         self.idx += 1;
-        self.read_key_value();
+        self.read_kv();
     }
 
     /// Seek to the first key that >= `key`.
     pub fn seek_to_key(&mut self, key: &[u8]) {
-        while self.is_valid() {
-            self.next();
-            if self.key.as_slice() >= key {
-                break;
-            }
-        }
+        // NOTE: also need to seek to previous key
+        let idx = self.binary_search_key(key);
+        self.idx = idx;
+        self.read_kv();
     }
 
-    fn read_key_value(&mut self) {
+    fn binary_search_key(&self, key: &[u8]) -> usize {
+        self.block
+            .offsets
+            .binary_search_by_key(&key, |&offset| {
+                let offset = offset as usize;
+                let key_size = (&self.block.data[offset..offset + SIZE_OF_U16]).get_u16() as usize;
+                let pos = offset + SIZE_OF_U16;
+                &self.block.data[pos..pos + key_size]
+            })
+            .unwrap_or_else(|x| x)
+    }
+
+    fn read_kv(&mut self) {
         if let Some(&offset) = self.block.offsets.get(self.idx) {
             let mut pos = offset as usize;
             let key_size = (&self.block.data[pos..pos + SIZE_OF_U16]).get_u16() as usize;
